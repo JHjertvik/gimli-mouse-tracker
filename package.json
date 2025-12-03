@@ -1,0 +1,20 @@
+{
+  "name": "gimli-mouse-tracker",
+  "version": "1.0.0",
+  "description": "A physics-based mouse tracking Web Component.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "web-component",
+    "physics",
+    "mouse",
+    "tracking",
+    "ui",
+    "css",
+    "properties"
+  ],
+  "author": "Joakim Hjertvik",
+  "license": "MIT"
+}
