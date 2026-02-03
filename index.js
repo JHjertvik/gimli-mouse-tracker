@@ -4,40 +4,31 @@ class TrackerModel {
     this.attributeValue = attributeValue;
 
     this.initialValue = initialValue;
-    this.value = initialValue; // The current value
-    this.target = initialValue; // The target value we're moving towards
-    this.velocity = 0; // The current speed of change
+    this.value = initialValue;
+    this.target = initialValue;
+    this.velocity = 0;
 
-    // Tunable physics parameters
-    this.tension = tension; // How "strong" the spring is (0 to 1)
-    this.friction = friction; // How much it resists (0 to 1) - lower is more bouncy
+    this.tension = tension;
+    this.friction = friction;
   }
 
   setToInitialValue() {
     this.target = this.initialValue;
   }
 
-  // Set a new target to animate towards
   setTarget(newTarget) {
     this.target = newTarget;
   }
 
   update() {
-    // Calculate the force of the spring (Hooke's Law)
     const springForce = (this.target - this.value) * this.tension;
-
-    // Calculate the damping force (resistance)
     const dampingForce = -this.velocity * this.friction;
 
-    // Update the velocity based on the combined forces
     this.velocity += springForce + dampingForce;
-
-    // Update the current value
     this.value += this.velocity;
 
     let isMoving = true;
 
-    // Check if it's close enough to snap
     if (Math.abs(this.value - this.target) < 0.1 && Math.abs(this.velocity) < 0.1) {
       this.value = this.target;
       this.velocity = 0;
@@ -49,12 +40,13 @@ class TrackerModel {
   }
 }
 
-export class MouseTracker extends HTMLElement {
+class MouseTracker extends HTMLElement {
   static DEFAULT_FRICTION = 0.3;
   static DEFAULT_TENSION = 0.1;
 
   static get observedAttributes() {
     return [
+      'disabled',
       'friction',
       'tension',
       'offset-x',
@@ -73,11 +65,9 @@ export class MouseTracker extends HTMLElement {
     this.models = {};
     this.modelsArr = [];
 
-    // Default physics
     this.friction = MouseTracker.DEFAULT_FRICTION;
     this.tension = MouseTracker.DEFAULT_TENSION;
 
-    // Default offsets
     this.xOffsetPx = 0;
     this.yOffsetPx = 0;
     this.xOffsetPercentage = 0;
@@ -86,9 +76,16 @@ export class MouseTracker extends HTMLElement {
     this.boundAnimate = this.animate.bind(this);
     this.boundHandleMouseMove = this.handleMouseMove.bind(this);
     this.boundHandleMouseLeave = this.handleMouseLeave.bind(this);
+    
+    this.boundHandleTouchMove = this.handleTouchMove.bind(this);
+    this.boundHandleTouchEnd = this.handleTouchEnd.bind(this);
 
     this.rootStyles = getComputedStyle(document.documentElement);
     this.componentStyles = getComputedStyle(this);
+  }
+
+  get isDisabled() {
+    return this.hasAttribute('disabled') && this.getAttribute('disabled') !== 'false';
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -98,6 +95,11 @@ export class MouseTracker extends HTMLElement {
     const numVal = isNaN(num) ? null : num;
 
     switch (name) {
+      case 'disabled':
+        if (this.isConnected) {
+          this.isDisabled ? this.stopTracking() : this.startTracking();
+        }
+        break;
       case 'friction':
         this.friction = numVal || MouseTracker.DEFAULT_FRICTION;
         this.updateAllModelsPhysics();
@@ -155,11 +157,28 @@ export class MouseTracker extends HTMLElement {
   }
 
   connectedCallback() {
-    this.addEventListener('mousemove', this.boundHandleMouseMove);
-    this.addEventListener('mouseleave', this.boundHandleMouseLeave);
+    if (!this.isDisabled) {
+      this.startTracking();
+    }
   }
 
   disconnectedCallback() {
+    this.stopTracking();
+  }
+
+  startTracking() {
+    this.addEventListener('mousemove', this.boundHandleMouseMove);
+    this.addEventListener('mouseleave', this.boundHandleMouseLeave);
+
+    if (this.getAttribute('touch-support') !== 'false') {
+      this.addEventListener('touchstart', this.boundHandleTouchMove, { passive: true });
+      this.addEventListener('touchmove', this.boundHandleTouchMove, { passive: true });
+      this.addEventListener('touchend', this.boundHandleTouchEnd);
+      this.addEventListener('touchcancel', this.boundHandleTouchEnd);
+    }
+  }
+
+  stopTracking() {
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -167,6 +186,12 @@ export class MouseTracker extends HTMLElement {
 
     this.removeEventListener('mousemove', this.boundHandleMouseMove);
     this.removeEventListener('mouseleave', this.boundHandleMouseLeave);
+    
+    // Always attempt removal to ensure clean state
+    this.removeEventListener('touchstart', this.boundHandleTouchMove);
+    this.removeEventListener('touchmove', this.boundHandleTouchMove);
+    this.removeEventListener('touchend', this.boundHandleTouchEnd);
+    this.removeEventListener('touchcancel', this.boundHandleTouchEnd);
   }
 
   updateAllModelsPhysics() {
@@ -183,15 +208,16 @@ export class MouseTracker extends HTMLElement {
     this.requestAnimate();
   }
 
-  /**
-   * @param {MouseEvent} event
-   */
-  handleMouseMove(event) {
+  handleTouchEnd() {
+    this.handleMouseLeave();
+  }
+
+  updateTargets(clientX, clientY) {
     // Tried to cache rect but measured no performance gains
     const rect = this.getBoundingClientRect();
 
-    const xPx = event.clientX - rect.left;
-    const yPx = event.clientY - rect.top;
+    const xPx = clientX - rect.left;
+    const yPx = clientY - rect.top;
 
     this.models['mouse-x']?.setTarget(xPx + this.xOffsetPx);
     this.models['mouse-y']?.setTarget(yPx + this.yOffsetPx);
@@ -200,6 +226,17 @@ export class MouseTracker extends HTMLElement {
     this.models['mouse-y-percentage']?.setTarget((yPx / rect.height) * 100 - this.yOffsetPercentage);
 
     this.requestAnimate();
+  }
+
+  handleMouseMove(event) {
+    this.updateTargets(event.clientX, event.clientY);
+  }
+
+  handleTouchMove(event) {
+    if (event.touches.length > 0) {
+      const touch = event.touches[0];
+      this.updateTargets(touch.clientX, touch.clientY);
+    }
   }
 
   requestAnimate() {
