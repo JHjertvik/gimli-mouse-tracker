@@ -15,6 +15,8 @@ The mouse-tracker is a zero-dependency Web Component that monitors mouse movemen
 ## Demos
  - [Weather Widget on Codepen](https://codepen.io/gimli_app/pen/OPXgbwj)
  - [Magnetic button on Codepen](https://codepen.io/gimli_app/pen/VYaGoWj)
+ - [Magnifying Widget](https://codepen.io/gimli_app/pen/jErweWL)
+ - [Compare Widget](https://codepen.io/gimli_app/pen/azZVjRe)
 
 ## Attributes
 ### Physics Configuration
