@@ -2,12 +2,10 @@ class TrackerModel {
   constructor(initialValue, tension, friction, attributeValue, styleReceiver) {
     this.styleReceiver = styleReceiver;
     this.attributeValue = attributeValue;
-
     this.initialValue = initialValue;
     this.value = initialValue;
     this.target = initialValue;
     this.velocity = 0;
-
     this.tension = tension;
     this.friction = friction;
   }
@@ -64,6 +62,7 @@ class MouseTracker extends HTMLElement {
     super();
     this.models = {};
     this.modelsArr = [];
+    this.modelAttributes = [];
 
     this.friction = MouseTracker.DEFAULT_FRICTION;
     this.tension = MouseTracker.DEFAULT_TENSION;
@@ -81,50 +80,55 @@ class MouseTracker extends HTMLElement {
     this.boundHandleTouchEnd = this.handleTouchEnd.bind(this);
 
     this.rootStyles = getComputedStyle(document.documentElement);
-    this.componentStyles = getComputedStyle(this);
   }
 
   get isDisabled() {
     return this.hasAttribute('disabled') && this.getAttribute('disabled') !== 'false';
   }
 
-  attributeChangedCallback(name, oldValue, newValue) {
+  parseValue(value, defaultValue){
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? defaultValue : parsed;
+  }
+
+  attributeChangedCallback(attribute, oldValue, newValue) {
     if (oldValue === newValue) return;
 
-    const num = parseFloat(newValue);
-    const numVal = isNaN(num) ? null : num;
-
-    switch (name) {
+    switch (attribute) {
       case 'disabled':
         if (this.isConnected) {
           this.isDisabled ? this.stopTracking() : this.startTracking();
         }
         break;
       case 'friction':
-        this.friction = numVal || MouseTracker.DEFAULT_FRICTION;
+        this.friction = this.parseValue(newValue, MouseTracker.DEFAULT_FRICTION);
         this.updateAllModelsPhysics();
         break;
       case 'tension':
-        this.tension = numVal || MouseTracker.DEFAULT_TENSION;
+        this.tension = this.parseValue(newValue, MouseTracker.DEFAULT_TENSION);
         this.updateAllModelsPhysics();
         break;
       case 'offset-x':
-        this.xOffsetPx = numVal || 0;
+        this.xOffsetPx = this.parseValue(newValue, 0);
         break;
       case 'offset-y':
-        this.yOffsetPx = numVal || 0;
+        this.yOffsetPx = this.parseValue(newValue, 0);
         break;
       case 'offset-x-percentage':
-        this.xOffsetPercentage = numVal || 0;
+        this.xOffsetPercentage = this.parseValue(newValue, 0);
         break;
       case 'offset-y-percentage':
-        this.yOffsetPercentage = numVal || 0;
+        this.yOffsetPercentage = this.parseValue(newValue, 0);
         break;
       case 'mouse-x':
       case 'mouse-y':
       case 'mouse-x-percentage':
       case 'mouse-y-percentage':
-        this.createOrUpdateModel(name);
+        if(this.modelAttributes.includes(attribute)){
+          this.createOrUpdateModel(attribute);
+        }else{
+          this.modelAttributes.push(attribute);
+        }
         break;
     }
   }
@@ -134,13 +138,13 @@ class MouseTracker extends HTMLElement {
 
     if (!attributeValue) {
       this.models[attributeName] = null;
-      this.refreshModelsArray();
+      this.modelsArr = Object.values(this.models).filter((value) => value !== null);
       return;
     }
 
     const rootValue = this.rootStyles.getPropertyValue(attributeValue);
-    const value = parseFloat((rootValue || this.componentStyles.getPropertyValue(attributeValue)) ?? 0);
-
+    const value =  this.parseValue(rootValue || getComputedStyle(this).getPropertyValue(attributeValue), 0);
+    
     this.models[attributeName] = new TrackerModel(
       value,
       this.tension,
@@ -149,14 +153,11 @@ class MouseTracker extends HTMLElement {
       rootValue ? document.documentElement : this
     );
 
-    this.refreshModelsArray();
-  }
-
-  refreshModelsArray() {
     this.modelsArr = Object.values(this.models).filter((value) => value !== null);
   }
 
   connectedCallback() {
+    this.modelAttributes.forEach(attribute => this.createOrUpdateModel(attribute));
     if (!this.isDisabled) {
       this.startTracking();
     }
@@ -186,8 +187,6 @@ class MouseTracker extends HTMLElement {
 
     this.removeEventListener('mousemove', this.boundHandleMouseMove);
     this.removeEventListener('mouseleave', this.boundHandleMouseLeave);
-    
-    // Always attempt removal to ensure clean state
     this.removeEventListener('touchstart', this.boundHandleTouchMove);
     this.removeEventListener('touchmove', this.boundHandleTouchMove);
     this.removeEventListener('touchend', this.boundHandleTouchEnd);
@@ -228,7 +227,7 @@ class MouseTracker extends HTMLElement {
     this.requestAnimate();
   }
 
-  handleMouseMove(event) {
+  handleMouseMove(event) {  
     this.updateTargets(event.clientX, event.clientY);
   }
 
