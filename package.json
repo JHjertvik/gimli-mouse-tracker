@@ -1,6 +1,6 @@
 {
   "name": "gimli-mouse-tracker",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A physics-based mouse tracking Web Component.",
   "main": "index.js",
   "scripts": {
