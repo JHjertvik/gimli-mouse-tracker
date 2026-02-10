@@ -8,9 +8,23 @@ A single-file, no-dependency Web Component that tracks the user's mouse movement
 npm install gimli-mouse-tracker
 ```
 
-## Documentation
+Once installed, import the Web Component anywhere in your project 
 
-The mouse-tracker is a zero-dependency Web Component that monitors mouse movement within its bounds and maps those coordinates to CSS Custom Properties (CSS variables) using a spring-physics engine for smooth, organic motion.
+```js
+import 'gimli-mouse-tracker';
+```
+
+### Minimal example [View on Codepen](https://codepen.io/gimli_app/pen/NPrEONK)
+
+The component outputs unitless numbers, allowing you to use them in calc() for pixels, degrees, or other units.
+
+```html
+<mouse-tracker style="--x: 0;" mouse-x="--x">
+  <div style="transform: translate(calc(var(--x) * 1px), 0px); height: 20px; width: 20px; background: red;"></div>
+</mouse-tracker>
+```
+
+Check out the demos below for more examples on how to use the mouse tracker.
 
 ## Demos
  - [Weather Widget on Codepen](https://codepen.io/gimli_app/pen/OPXgbwj)
@@ -33,28 +47,34 @@ The values of these attributes must be the CSS variable name (e.g., --my-coord) 
 ### Pixel-Based Tracking
 These track the mouse position in absolute pixels relative to the top-left corner of the <mouse-tracker> element.
 
-| Attribute     | Description |
-| -------- | ------- |
-| mouse-x  | Maps the horizontal pixel position to a CSS variable.    |
-| mouse-y | Maps the vertical pixel position to a CSS variable.  |
+| Attribute  | Description | Expected value |
+| -------- | ------- | ------- |
+| mouse-x  | Maps the horizontal pixel position to a CSS variable. | A CSS variable name, for example: --mouse-x |
+| mouse-y | Maps the vertical pixel position to a CSS variable. | A CSS variable name, for example:  --mouse-y |
 
 ### Percentage-Based Tracking
 These track the mouse position as a percentage (0 to 100) of the element's total width and height.
 
-| Attribute     | Description |
-| -------- | ------- |
-| mouse-x-percentage  | Maps horizontal progress (0-100%) to a CSS variable.   |
-| mouse-y-percentage | Maps vertical progress (0-100%) to a CSS variable. |
+| Attribute | Description | Expected value |
+| -------- | ------- | ------- |
+| mouse-x-percentage  | Maps horizontal progress (0-100%) to a CSS variable. | A CSS variable name, for example: --mouse-x-percentage |
+| mouse-y-percentage | Maps vertical progress (0-100%) to a CSS variable. | A CSS variable name, for example: --mouse-y-percentage |
 
 ### Offset Adjustments
 Offsets allow you to shift the coordinate system. These are useful for centering an element on the cursor (e.g., setting a percentage offset of 50 to make the center of the element the origin).
 
-| Attribute     | Description |
-| -------- | ------- |
-| offset-x  | Subtracted from the mouse-x value.   |
-| offset-y | Subtracted from the mouse-y value. |
-| offset-x-percentage  | Subtracted from the mouse-x-percentage value.  |
-| offset-y-percentage | Subtracted from the mouse-y-percentage value. |
+| Attribute | Description | Expected value |
+| -------- | ------- | ------- |
+| offset-x  | Subtracted from the mouse-x value.   | A unitless number |
+| offset-y | Subtracted from the mouse-y value. | A unitless number |
+| offset-x-percentage  | Subtracted from the mouse-x-percentage value.  | A unitless number (0 - 100) |
+| offset-y-percentage | Subtracted from the mouse-y-percentage value. | A unitless number (0 - 100) |
+
+### Other attributes
+| Attribute     | Description | Default value |
+| -------- | ------- | ------- |
+| disabled  | Observed attribute for enabling/disabling using true/false | false |
+| touch-support | Unobserved attribute for touch support using true/false.  | true |
 
 ## Technical Behavior
  - Initial Values: When the component initializes, it looks for an existing value of the CSS variable on the document root or the component itself to use as the starting point.
